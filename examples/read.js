@@ -1,4 +1,4 @@
-var futureStream = require('./index');
+var futureStream = require('..');
 var fs = require('fs');
 
 function makeStream() {

@@ -1,6 +1,7 @@
 var expect = require('expect.js'),
     Stream = require('stream'),
     setImmediate = global.setImmediate || process.nextTick,
+    through = require('through'),
     futureStream = require('..');
 
 describe('future-stream', function() {
@@ -70,5 +71,31 @@ describe('future-stream', function() {
         expect(count).to.equal(5);
         done();
       });
+  });
+
+  it('should be able delay a write stream', function(done) {
+    var delay = 100;
+    var start = Date.now();
+    function cond() {
+      return (Date.now() - start) > delay;
+    }
+
+    var count = 0;
+    generator(5).pipe(futureStream.write(makeStream, cond));
+
+    function makeStream() {
+      return through(write, end);
+    }
+    function write(data) {
+      expect(Date.now()).to.be.above(start + delay);
+      expect(data.key).to.match(/^key [0-9]+$/);
+      expect(data.value).to.match(/^value [0-9]+$/);
+      count++;
+    }
+    function end() {
+      expect(Date.now()).to.be.above(start + delay);
+      expect(count).to.equal(5);
+      done();
+    }
   });
 });
