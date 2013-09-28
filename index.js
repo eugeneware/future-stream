@@ -24,48 +24,54 @@ function futureReadStream(makeStream, cond) {
 
 module.exports.write = futureWriteStream;
 function futureWriteStream(makeStream, cond) {
-  if (cond()) {
-    return makeStream();
-  } else {
-    var s = new Stream();
-    var _s;
-    var ended = false;
-    var destroyed = false;
+  var s = new Stream();
+  var _s = makeStream();
+  var ended = false;
+  var destroyed = false;
+  var checking = false;
+  var buf = [];
 
-    s.writable = true;
-    var buf = [];
-    s.write = function (data) {
-      if (_s) {
-        return _s.write(data);
-      } else {
-        buf.push(data);
-      }
-    };
-    s.end = function (data) {
-      if (arguments.length) s.write(data);
-      s.writable = false;
-      ended = true;
-      if (_s) return _s.end();
-    };
-    s.destroy = function() {
-      s.writable = false;
-      if (_s) return _s.destroy();
-    };
+  s.writable = true;
+  s.write = function (data) {
+    buf.push(data);
+    doCheck();
+  };
+  s.end = function (data) {
+    if (arguments.length) s.write(data);
+    s.writable = false;
+    ended = true;
+    doCheck();
+  };
+  s.destroy = function() {
+    s.writable = false;
+    destroyed = true;
+    doCheck();
+  };
 
-    (function check() {
-      if (cond()) {
-        _s = makeStream();
-        if (buf.length) {
-          buf.map(function (data) {
-            _s.write(data);
-          });
-        }
-        if (ended) _s.end();
-        if (destroyed) _s.destroy();
-      } else {
-        setImmediate(check);
-      }
-    })();
-    return s;
+  function doCheck() {
+    if (!checking) {
+      checking = true;
+      setTimeout(check, 0);
+    }
   }
+
+  function check() {
+    while (buf.length) {
+      var data = buf[0];
+      if (cond(data)) {
+        buf.shift();
+        _s.write(data);
+      } else {
+        // seems to get better performance that setImmediate
+        setTimeout(check, 0);
+      }
+    }
+    if (buf.length === 0) {
+      if (ended) _s.end();
+      if (destroyed) _s.destroy();
+    }
+    checking = false;
+  }
+
+  return s;
 }

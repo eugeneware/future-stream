@@ -74,7 +74,7 @@ describe('future-stream', function() {
   });
 
   it('should be able delay a write stream', function(done) {
-    var delay = 100;
+    var delay = 200;
     var start = Date.now();
     function cond() {
       return (Date.now() - start) > delay;
@@ -88,6 +88,36 @@ describe('future-stream', function() {
     }
     function write(data) {
       expect(Date.now()).to.be.above(start + delay);
+      expect(data.key).to.match(/^key [0-9]+$/);
+      expect(data.value).to.match(/^value [0-9]+$/);
+      count++;
+    }
+    function end() {
+      expect(Date.now()).to.be.above(start + delay);
+      expect(count).to.equal(5);
+      done();
+    }
+  });
+
+  it('should be able delay individual writes for a write stream', function(done) {
+    var delay = 100;
+    var start = Date.now();
+    function cond(data) {
+      return (data.key < 'key 3') || (Date.now() - start) > delay;
+    }
+
+    var count = 0;
+    generator(5).pipe(futureStream.write(makeStream, cond));
+
+    function makeStream() {
+      return through(write, end);
+    }
+    function write(data) {
+      if (data.key < 'key 3') {
+        expect(Date.now()).to.not.be.above(start + delay);
+      } else {
+        expect(Date.now()).to.be.above(start + delay);
+      }
       expect(data.key).to.match(/^key [0-9]+$/);
       expect(data.value).to.match(/^value [0-9]+$/);
       count++;
