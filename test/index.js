@@ -21,7 +21,7 @@ describe('future-stream', function() {
     return s;
   }
 
-  it('emit events', function(done) {
+  it('should be able delay a stream', function(done) {
     var delay = 100;
     var start = Date.now();
     function cond() {
@@ -40,7 +40,33 @@ describe('future-stream', function() {
         count++;
       })
       .on('end', function () {
-        expect(Date.now() > start);
+        expect(Date.now()).to.be.above(start + delay);
+        expect(count).to.equal(5);
+        done();
+      });
+  });
+
+  it('should shortcut the stream if the cond fn is true', function(done) {
+    var start = Date.now();
+    var delay = 100;
+
+    function cond() {
+      return true;
+    }
+    function makeStream() {
+      return generator(5);
+    }
+
+    var count = 0;
+    futureStream(makeStream, cond)
+      .on('data', function (data) {
+        expect(Date.now()).to.not.be.above(start + delay);
+        expect(data.key).to.match(/^key [0-9]+$/);
+        expect(data.value).to.match(/^value [0-9]+$/);
+        count++;
+      })
+      .on('end', function () {
+        expect(Date.now()).to.not.be.above(start + delay);
         expect(count).to.equal(5);
         done();
       });
