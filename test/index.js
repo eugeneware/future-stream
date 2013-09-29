@@ -107,6 +107,7 @@ describe('future-stream', function() {
     }
 
     var count = 0;
+    var nonDelayedWrites = 0;
     generator(5).pipe(futureStream.write(makeStream, cond));
 
     function makeStream() {
@@ -114,6 +115,7 @@ describe('future-stream', function() {
     }
     function write(data) {
       if (data.key < 'key 3') {
+        nonDelayedWrites++;
         expect(Date.now()).to.not.be.above(start + delay);
       } else {
         expect(Date.now()).to.be.above(start + delay);
@@ -124,6 +126,7 @@ describe('future-stream', function() {
     }
     function end() {
       expect(Date.now()).to.be.above(start + delay);
+      expect(nonDelayedWrites).to.equal(3);
       expect(count).to.equal(5);
       done();
     }

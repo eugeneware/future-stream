@@ -31,6 +31,9 @@ function futureWriteStream(makeStream, cond) {
   var checking = false;
   var buf = [];
 
+  // hack: to allow us to listen in on db.createWriteStream 'close' events
+  _s.on('close', s.emit.bind(s, 'close'));
+
   s.writable = true;
   s.write = function (data) {
     buf.push(data);
@@ -51,7 +54,7 @@ function futureWriteStream(makeStream, cond) {
   function doCheck() {
     if (!checking) {
       checking = true;
-      setTimeout(check, 0);
+      setImmediate(check);
     }
   }
 
@@ -62,8 +65,7 @@ function futureWriteStream(makeStream, cond) {
         buf.shift();
         _s.write(data);
       } else {
-        // seems to get better performance that setImmediate
-        setTimeout(check, 0);
+        return setImmediate(check);
       }
     }
     if (buf.length === 0) {
