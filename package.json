@@ -1,6 +1,6 @@
 {
   "name": "future-stream",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Delay the emission of stream events until a future condition is true",
   "main": "index.js",
   "scripts": {
